@@ -7,16 +7,7 @@ SensorDevice::SensorDevice(char *config)
 {
 }
 
-SensorDevice::~SensorDevice()
+void SensorDevice::ResizeBufferSize()
 {
-}
-
-void SensorDevice::SetBufferSize()
-{
-    int new_size = MINUTE / m_measurement_intervall;
-    if (m_temp_buffer != nullptr)
-    {
-        delete[] m_temp_buffer;
-    }
-    *m_temp_buffer = new float(new_size);
+    m_temp_buffer = new float[m_measurements_per_min];
 }
