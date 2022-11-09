@@ -3,17 +3,18 @@
 class SensorDevice
 {
 private:
-    char* m_id;
+    char *m_id;
+    int m_measurements_per_min;
     float m_current_temp_avg;
     float m_previous_temp_avg;
-    int m_measurement_intervall;
-    float* m_temp_buffer[0];
-    void SetBufferSize();
-public:
-    char* GetId();
-    void SetId(char* new_id);
-    char* ToString();
-    SensorDevice(char* config);
-    ~SensorDevice();
-};
+    float *m_temp_buffer;
 
+    void ResizeBufferSize();
+
+public:
+    SensorDevice(char *config);
+    ~SensorDevice();
+    char *GetId();
+    char *ToString();
+    void SetId(char *new_id);
+};
