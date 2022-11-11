@@ -1,18 +1,33 @@
-#include <Arduino.h>
-#include <BluetoothSerial.h>
-
 #ifndef SENSOR_DEVICE_DEFINED
 #define SENSOR_DEVICE_DEFINED
 #include "headers/sensor_device.h"
 #endif
 
+SensorDevice device;
 
-BluetoothSerial SerialBT;
-
-void setup() {
-  // put your setup code here, to run once:
+void setup()
+{
+  device = SensorDevice(SensorDevice::GetConfigFromserver());
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
+void loop()
+{
+  if (device.canCollectData())
+  {
+    device.CollecData();
+  }
+
+  if (device.canSendData())
+  {
+    if (device.isConnectedToGateway())
+    {
+      device.ProcessData();
+      device.SendDataToGateway();
+    }
+    else
+    {
+      device.WaitForConnection();
+    }
+  }
+  device.Sleep();
 }
