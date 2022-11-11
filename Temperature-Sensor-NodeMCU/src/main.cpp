@@ -1,13 +1,10 @@
-#ifndef SENSOR_DEVICE_DEFINED
-#define SENSOR_DEVICE_DEFINED
 #include "headers/sensor_device.h"
-#endif
 
 SensorDevice device;
 
 void setup()
 {
-  device = SensorDevice(SensorDevice::GetConfigFromserver());
+  device = SensorDevice();
 }
 
 void loop()
