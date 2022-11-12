@@ -7,16 +7,19 @@ SensorDevice::SensorDevice()
     Serial.begin(115200);
     this->m_id = UUIDGenerator::generate_uuid();
     this->m_buffer_is_ready = false;
-    this->ResizeBuffer();
+    float *m_temp_buffer = nullptr;
     this->m_measurements_per_min = DEFAULT_MEASUREMENT_PER_MINUTE_VALUE;
-    this->m_data_pointer = 0;
     this->m_temp_avg = -1;
     this->m_last_data_time = 0;
+    this->m_calc_mode = CalculationMode::Average;
+    this->ResizeBuffer();
+    this->m_ble_client = BLEClient();
+    Serial.println("Setup done!");
 }
 
 SensorDevice::~SensorDevice()
 {
-    if (this->m_temp_buffer != nullptr)
+    if (this->m_temp_buffer)
     {
         delete[] m_temp_buffer;
     }
@@ -24,14 +27,31 @@ SensorDevice::~SensorDevice()
 
 void SensorDevice::ResizeBuffer()
 {
-    m_temp_buffer = new float[m_measurements_per_min];
+    float *tmp_buffer = new float[m_measurements_per_min];
+    if (this->m_temp_buffer)
+    {
+        delete[] this->m_temp_buffer;
+    }
+
+    m_temp_buffer = tmp_buffer;
+    for (int i = 0; i < this->m_measurements_per_min; i++)
+    {
+        this->m_temp_buffer[i] = 0.0f;
+    }
+    m_data_pointer = 0;
 }
 
-void SensorDevice::Sleep(){
+void SensorDevice::Sleep()
+{
 
     // Divedes the minute into the number of required measurements, then divides it by to prevent too long waits between measurements.
-    int time_to_sleep = MINUTE/this->m_measurements_per_min/2;
+    int time_to_sleep = MINUTE / this->m_measurements_per_min / 2;
     delay(time_to_sleep);
+}
+
+bool SensorDevice::isConnectedToGateway()
+{
+    return this->m_ble_client.isConnected();
 }
 
 bool SensorDevice::canCollectData()

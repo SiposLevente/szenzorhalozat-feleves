@@ -1,4 +1,4 @@
-#include <BLEDevice.h>
+#include <BLEClient.h>
 #include <Arduino.h>
 
 #define CHARACTERISTIC_UUID "1adab8b2-100d-4dbd-9880-7ce062b02bd5"
@@ -9,9 +9,8 @@
 
 #define DATA_PIN A0
 
-
-enum CalculationMode{
-    SlidingWindow,
+enum CalculationMode
+{
     Average,
     Median,
     Mode,
@@ -27,10 +26,10 @@ private:
     float m_temp_avg;
     float *m_temp_buffer;
     unsigned long m_last_data_time;
-    
+
     CalculationMode m_calc_mode;
 
-    BLEDevice m_ble_device;
+    BLEClient m_ble_client;
 
     void ConnectToServer();
     void ResizeBuffer();
@@ -42,6 +41,7 @@ public:
     char *GetId();
     bool canCollectData();
     bool canSendData();
+    bool isConnectedToGateway();
     void CollecData();
     void Sleep();
 };
