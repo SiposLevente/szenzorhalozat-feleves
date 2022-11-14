@@ -1,6 +1,9 @@
 #include <BLEClient.h>
 #include <Arduino.h>
 
+#include "headers/uuid_generator.h"
+#include "headers/calulation_modes.h"
+
 #define CHARACTERISTIC_UUID "1adab8b2-100d-4dbd-9880-7ce062b02bd5"
 #define SERVICE_UUID "c8de7840-55e8-4a79-8286-0db52a0f1a94"
 #define GATEWAY_NAME "Gateway_ESP32"
@@ -28,6 +31,7 @@ private:
     unsigned long m_last_data_time;
 
     CalculationMode m_calc_mode;
+    float(*m_calculation_mode_function)(float*, int);
 
     BLEClient m_ble_client;
 
@@ -43,5 +47,6 @@ public:
     bool canSendData();
     bool isConnectedToGateway();
     void CollecData();
+    void ProcessData();
     void Sleep();
 };

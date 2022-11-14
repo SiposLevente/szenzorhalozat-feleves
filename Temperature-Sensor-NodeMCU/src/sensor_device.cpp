@@ -1,5 +1,4 @@
 #include "headers/sensor_device.h"
-#include "headers/uuid_generator.h"
 
 // Constructor
 SensorDevice::SensorDevice()
@@ -25,6 +24,11 @@ SensorDevice::~SensorDevice()
     }
 }
 
+void SensorDevice::ProcessData()
+{
+    this->m_temp_avg = this->m_calculation_mode_function(this->m_temp_buffer, this->m_measurements_per_min);
+}
+
 void SensorDevice::ResizeBuffer()
 {
     float *tmp_buffer = new float[m_measurements_per_min];
@@ -43,8 +47,7 @@ void SensorDevice::ResizeBuffer()
 
 void SensorDevice::Sleep()
 {
-
-    // Divedes the minute into the number of required measurements, then divides it by to prevent too long waits between measurements.
+    // Divides the minute into the number of required measurements, then divides it by to prevent too long waits between measurements.
     int time_to_sleep = MINUTE / this->m_measurements_per_min / 2;
     delay(time_to_sleep);
 }
