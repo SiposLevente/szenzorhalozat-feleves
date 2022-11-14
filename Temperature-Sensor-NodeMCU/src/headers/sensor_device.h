@@ -29,11 +29,10 @@ private:
     float m_temp_avg;
     float *m_temp_buffer;
     unsigned long m_last_data_time;
-
-    CalculationMode m_calc_mode;
     float(*m_calculation_mode_function)(float*, int);
 
     BLEClient m_ble_client;
+    CalculationMode m_calc_mode;
 
     void ConnectToServer();
     void ResizeBuffer();
