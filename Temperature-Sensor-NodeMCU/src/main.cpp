@@ -16,9 +16,9 @@ void loop()
 
   if (device.canSendData())
   {
+    device.ProcessData();
     if (device.isConnectedToGateway())
     {
-      device.ProcessData();
       device.SendDataToGateway();
     }
     else
