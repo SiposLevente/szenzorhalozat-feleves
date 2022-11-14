@@ -86,7 +86,9 @@ bool SensorDevice::canSendData()
 void SensorDevice::CollecData()
 {
     Serial.print("Collecting data...");
-    float data = this->ConvertValueToDataEntry(analogRead(DATA_PIN));
+    int analog_in = analogRead(DATA_PIN);
+    Serial.print("got analog data...");
+    float data = this->ConvertValueToDataEntry(analog_in);
     Serial.print("Data collected: ");
     Serial.println(data);
     Serial.print("Data written to buffer at position: ");
@@ -97,9 +99,9 @@ void SensorDevice::CollecData()
     Serial.println(this->m_data_pointer);
 }
 
-float SensorDevice::ConvertValueToDataEntry(uint16_t value)
+float SensorDevice::ConvertValueToDataEntry(int value)
 {
-    Serial.println("Data is converted!");
+    Serial.println("data is converted!");
     // TODO convert function to real data conversion
     return (float)value;
 }

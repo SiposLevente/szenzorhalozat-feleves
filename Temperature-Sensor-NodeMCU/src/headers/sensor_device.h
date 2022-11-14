@@ -33,7 +33,7 @@ private:
 
     void ResizeBuffer();
     void ResetBuffer();
-    float ConvertValueToDataEntry(uint16_t value);
+    float ConvertValueToDataEntry(int value);
 
 public:
     SensorDevice();
