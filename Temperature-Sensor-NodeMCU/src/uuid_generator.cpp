@@ -1,7 +1,7 @@
 #include "headers/uuid_generator.h"
 #include <cstdlib>
 
-char *UUIDGenerator::generate_uuid()
+char *UUIDGenerator::GenerateUUID()
 {
     char characters[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     static char buf[37] = {0};

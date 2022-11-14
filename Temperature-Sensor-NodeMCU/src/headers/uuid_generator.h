@@ -1,4 +1,5 @@
-class UUIDGenerator {
-    public:
-    static char* generate_uuid();
+class UUIDGenerator
+{
+public:
+    static char *GenerateUUID();
 };
