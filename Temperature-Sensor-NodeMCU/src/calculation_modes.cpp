@@ -38,6 +38,7 @@ float CalculationModes::Mode(float *buffer, int size)
             number = buffer[i];
         }
     }
+    return mode;
 }
 
 float CalculationModes::Median(float *buffer, int size)
