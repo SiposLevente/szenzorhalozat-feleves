@@ -7,7 +7,6 @@ SensorDevice device;
 
 void setup()
 {
-
   device = SensorDevice();
 }
 

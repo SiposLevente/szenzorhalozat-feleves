@@ -6,7 +6,7 @@
 #define MINUTE 60000
 #define DEFAULT_MEASUREMENT_PER_MINUTE_VALUE 60
 
-#define DATA_PIN A0
+#define DATA_PIN A16
 
 enum CalculationMode
 {
