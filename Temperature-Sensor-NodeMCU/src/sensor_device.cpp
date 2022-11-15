@@ -87,6 +87,7 @@ void SensorDevice::CollecData()
 {
     Serial.print("Collecting data...");
     int analog_in = analogRead(DATA_PIN);
+    delay(10);
     Serial.print("got analog data...");
     float data = this->ConvertValueToDataEntry(analog_in);
     Serial.print("Data collected: ");
@@ -101,7 +102,7 @@ void SensorDevice::CollecData()
 
 float SensorDevice::ConvertValueToDataEntry(int value)
 {
-    Serial.println("data is converted!");
+    Serial.println("data is converted");
     // TODO convert function to real data conversion
     return (float)value;
 }
