@@ -1,7 +1,4 @@
 #include "headers/sensor_device.h"
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
 
 SensorDevice device = SensorDevice();
 
@@ -23,8 +20,6 @@ void loop()
   }
   device.Sleep();
 }
-
-
 
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute)
 {
