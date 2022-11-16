@@ -34,6 +34,16 @@ void SensorDevice::ProcessData()
     Serial.println("done!");
 }
 
+int SensorDevice::GetMeasurementsPerMinute()
+{
+    return this->m_measurements_per_min;
+}
+
+char* SensorDevice::GetID()
+{
+    return this->m_id;
+}
+
 float SensorDevice::GetData()
 {
     Serial.println("Getting processed data!");

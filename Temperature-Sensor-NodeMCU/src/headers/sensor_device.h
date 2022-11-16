@@ -51,5 +51,7 @@ public:
     void ProcessData();
     void SetMeasurementPerMinute(int new_measurement_per_minute);
     void SetCalculationMode(CalculationMode calc_mode);
+    int GetMeasurementsPerMinute();
+    char* GetID();
     float GetData();
 };
