@@ -3,15 +3,15 @@
 #include <BLEServer.h>
 #include "headers/sensor_device.h"
 #include <Arduino.h>
+#define TEMPERATURE_SERVICE_UUID "e414d508-cb57-40d5-bac5-0d237078f34f"
+#define GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE "ee459751-dc64-474a-8a5f-ada5cdf9c5ed"
+#define GATEWAY_COMMUNICATAION_CALCULATION_MODE_SERVICE "509093fd-5d42-4631-ba05-69206758a883"
+#define CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
 
 SensorDevice device = SensorDevice();
 void SetCalculationMode(const char *new_calc_mode);
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute);
 
-#define TEMPERATURE_SERVICE_UUID "e414d508-cb57-40d5-bac5-0d237078f34f"
-#define GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE "ee459751-dc64-474a-8a5f-ada5cdf9c5ed"
-#define GATEWAY_COMMUNICATAION_CALCULATION_MODE_SERVICE "509093fd-5d42-4631-ba05-69206758a883"
-#define CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
 
 class BLEMeasurementsPerMinuteCallback : public BLECharacteristicCallbacks
 {
