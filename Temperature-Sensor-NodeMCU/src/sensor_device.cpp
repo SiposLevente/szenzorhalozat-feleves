@@ -19,7 +19,6 @@ inline char *ToString(CalculationMode mode)
     }
 }
 
-// Constructor
 SensorDevice::SensorDevice()
 {
     Serial.begin(115200);
@@ -27,7 +26,6 @@ SensorDevice::SensorDevice()
     this->m_id = UUIDGenerator::GenerateUUID();
     Serial.print("Generated UUID: ");
     Serial.println(this->m_id);
-    this->m_buffer_is_ready = false;
     this->m_temp_buffer = nullptr;
     this->m_measurements_per_min = DEFAULT_MEASUREMENT_PER_MINUTE_VALUE;
     this->m_temp_avg = -1;
