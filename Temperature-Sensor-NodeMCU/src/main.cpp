@@ -6,20 +6,21 @@
 #define TEMPERATURE_SERVICE_UUID "e414d508-cb57-40d5-bac5-0d237078f34f"
 #define GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE "ee459751-dc64-474a-8a5f-ada5cdf9c5ed"
 #define GATEWAY_COMMUNICATAION_CALCULATION_MODE_SERVICE "509093fd-5d42-4631-ba05-69206758a883"
-#define CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
+
+#define TEMP_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593b"
+#define CALC_MODE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593c"
+#define MEASUREMENTS_PER_MINUTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
 
 SensorDevice device = SensorDevice();
 void SetCalculationMode(const char *new_calc_mode);
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute);
 
-
 class BLEMeasurementsPerMinuteCallback : public BLECharacteristicCallbacks
 {
   void onWrite(BLECharacteristic *characteristic)
   {
-    const char *value = characteristic->getValue().c_str();
-    Serial.printf("MPM: %d\n", value);
-    SetDeviceMeasurementPerMinute(atoi(value));
+    int value = atoi(characteristic->getValue().c_str());
+    SetDeviceMeasurementPerMinute(value);
   }
   void onRead(BLECharacteristic *characteristic)
   {
@@ -33,13 +34,12 @@ class BLECalculationModeCallback : public BLECharacteristicCallbacks
   void onWrite(BLECharacteristic *characteristic)
   {
     const char *value = characteristic->getValue().c_str();
-    Serial.printf("CALC MODE: %d\n", value);
     SetCalculationMode(value);
   }
   void onRead(BLECharacteristic *characteristic)
   {
-    int measaurements_per_minute = device.GetMeasurementsPerMinute();
-    characteristic->setValue(measaurements_per_minute);
+    char* calculation_mode = device.GetCalculationMode();
+    characteristic->setValue(calculation_mode);
   }
 };
 
@@ -67,27 +67,29 @@ void setup()
   BLEService *pMeasurementsPerMinuteService = pServer->createService(GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE);
 
   BLECharacteristic *pCalculationModeCharacteristic = pCalculationModeService->createCharacteristic(
-      CHARACTERISTIC_UUID,
+      CALC_MODE_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
           BLECharacteristic::PROPERTY_WRITE);
 
   BLECharacteristic *pMeasurementPerMinuteCharacteristic = pMeasurementsPerMinuteService->createCharacteristic(
-      CHARACTERISTIC_UUID,
+      MEASUREMENTS_PER_MINUTE_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
           BLECharacteristic::PROPERTY_WRITE);
 
   BLECharacteristic *pTempCharacteristic = pTemperatureService->createCharacteristic(
-      CHARACTERISTIC_UUID,
+      TEMP_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ);
 
   pCalculationModeCharacteristic->setCallbacks(new BLECalculationModeCallback());
   pCalculationModeCharacteristic->setValue(CALCULATION_MODE_AVERAGE_TYPE_TEXT);
+
+  //=============================
   pMeasurementPerMinuteCharacteristic->setCallbacks(new BLEMeasurementsPerMinuteCallback());
-  //=============================
-  char *value;
+  char value[5];
   itoa(DEFAULT_MEASUREMENT_PER_MINUTE_VALUE, value, 10);
-  //=============================
   pMeasurementPerMinuteCharacteristic->setValue(value);
+  //=============================
+
   pTempCharacteristic->setCallbacks(new BLETemperatureCallback());
   pTempCharacteristic->setValue("-1");
 
