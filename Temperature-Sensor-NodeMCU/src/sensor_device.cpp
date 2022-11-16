@@ -1,5 +1,24 @@
 #include "headers/sensor_device.h"
 
+inline char *ToString(CalculationMode mode)
+{
+    switch (mode)
+    {
+    case Average:
+        return "average";
+        break;
+    case Mode:
+        return "mode";
+        break;
+    case Median:
+        return "median";
+        break;
+    default:
+        return "[Unknown enum type]";
+        break;
+    }
+}
+
 // Constructor
 SensorDevice::SensorDevice()
 {
@@ -39,7 +58,12 @@ int SensorDevice::GetMeasurementsPerMinute()
     return this->m_measurements_per_min;
 }
 
-char* SensorDevice::GetID()
+char *SensorDevice::GetCalculationMode()
+{
+    return ToString(this->m_calc_mode);
+}
+
+char *SensorDevice::GetID()
 {
     return this->m_id;
 }
