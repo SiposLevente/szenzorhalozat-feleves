@@ -1,3 +1,4 @@
+/// Holds the UUID generation logic.
 class UUIDGenerator
 {
 public:
