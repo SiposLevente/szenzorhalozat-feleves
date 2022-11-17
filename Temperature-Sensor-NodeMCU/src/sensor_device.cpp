@@ -1,5 +1,6 @@
 #include "headers/sensor_device.h"
 
+/// CalculationMode enum's ToString method. Displays the enum values in a char pointer array.
 inline char *ToString(CalculationMode mode)
 {
     switch (mode)
