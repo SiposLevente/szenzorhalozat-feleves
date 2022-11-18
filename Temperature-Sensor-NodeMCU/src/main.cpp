@@ -19,11 +19,13 @@ bool isNotifySet = false;
 // Notification constant
 const uint8_t notificationOn[] = {0x1, 0x0};
 
+// Function declarations
 void CalculationModeNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify);
 void MeasurementPerMinuteNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify);
 void SetCalculationMode(const char *new_calc_mode);
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute);
 
+// Characteristics' declaration
 BLERemoteCharacteristic *pTemperatureRemoteCharacteristic;
 BLERemoteCharacteristic *pMeasurmentsPerMinuteRemoteCharacteristic;
 BLERemoteCharacteristic *pCalculationModeRemoteCharacteristic;
@@ -32,6 +34,7 @@ BLEAdvertisedDevice *myDevice;
 
 SensorDevice device = SensorDevice();
 
+// Connection callback
 class MyClientCallback : public BLEClientCallbacks
 {
   void onConnect(BLEClient *pclient)
@@ -57,7 +60,7 @@ bool connectToServer()
   pClient->connect(myDevice);
   Serial.println("Connected to server!");
 
-  // ----------------------- Temperature -----------------------
+  // Remote service
   BLERemoteService *RemoteService = pClient->getService(REMOTE_SERVICE_UUID);
 
   if (RemoteService == nullptr)
@@ -69,6 +72,7 @@ bool connectToServer()
   }
   Serial.println("Found remote service!");
 
+  // ----------------------- Temperature characteristic -----------------------
   pTemperatureRemoteCharacteristic = RemoteService->getCharacteristic(TEMPERATURE_REMOTE_CHARACTERISTIC_UUID);
   if (pTemperatureRemoteCharacteristic == nullptr)
   {
@@ -79,7 +83,7 @@ bool connectToServer()
   }
   Serial.println("Found temperature characteristic!");
 
-  // ----------------------- Measurement per minute -----------------------
+  // ----------------------- Measurement per minute characteristic -----------------------
 
   pMeasurmentsPerMinuteRemoteCharacteristic = RemoteService->getCharacteristic(MEASUREMENTS_PER_MINUTE_REMOTE_CHARACTERISTIC_UUID);
   if (pMeasurmentsPerMinuteRemoteCharacteristic == nullptr)
@@ -91,7 +95,7 @@ bool connectToServer()
   }
   Serial.println("Found measurement per minute characteristic!");
 
-  // ----------------------- Calculation mode -----------------------
+  // ----------------------- Calculation mode characteristic -----------------------
   pCalculationModeRemoteCharacteristic = RemoteService->getCharacteristic(CALCULATION_MODE_REMOTE_CHARACTERISTIC_UUID);
   if (pCalculationModeRemoteCharacteristic == nullptr)
   {
@@ -118,6 +122,7 @@ bool connectToServer()
     pTemperatureRemoteCharacteristic->writeValue(device.GetData());
   }
 
+  // Setting notify callbacks
   if (!isNotifySet)
   {
     pCalculationModeRemoteCharacteristic->registerForNotify(CalculationModeNotifyCallback);
@@ -128,6 +133,7 @@ bool connectToServer()
   return true;
 }
 
+// Callback functions
 void CalculationModeNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify)
 {
   SetCalculationMode((char *)pData);
@@ -164,11 +170,8 @@ void setup()
   BLEScan *pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setInterval(1349);
-
   pBLEScan->setWindow(449);
-
   pBLEScan->setActiveScan(true);
-
   pBLEScan->start(5, false);
 }
 
@@ -180,6 +183,8 @@ void loop()
     if (connectToServer())
     {
       Serial.println("Connected to the BLE Server.");
+
+      // Setting remote notification
       pMeasurmentsPerMinuteRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
       pCalculationModeRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
       pTemperatureRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
@@ -193,6 +198,7 @@ void loop()
   }
   if (isConnected)
   {
+    // Main logic of the sensor device
     if (device.canCollectData())
     {
       device.CollecData();
