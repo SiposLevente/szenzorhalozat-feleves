@@ -1,138 +1,224 @@
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include "headers/sensor_device.h"
 #include <Arduino.h>
+#include <BLEDevice.h>
+#include "headers/sensor_device.h"
 
-// --------------------- Services' UUID ---------------------
-#define TEMPERATURE_SERVICE_UUID "e414d508-cb57-40d5-bac5-0d237078f34f"
-#define GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE "ee459751-dc64-474a-8a5f-ada5cdf9c5ed"
-#define GATEWAY_COMMUNICATAION_CALCULATION_MODE_SERVICE "509093fd-5d42-4631-ba05-69206758a883"
+// --------------------- Remote Service UUID ---------------------
+#define REMOTE_SERVICE_UUID "e414d508-cb57-40d5-bac5-0d237078f34f"
 
 // --------------------- Characteristics' UUID ---------------------
-#define TEMP_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593b"
-#define CALC_MODE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593c"
-#define MEASUREMENTS_PER_MINUTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
+#define TEMPERATURE_REMOTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593b"
+#define CALCULATION_MODE_REMOTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593c"
+#define MEASUREMENTS_PER_MINUTE_REMOTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
 
-// --------------------- SensorDevice creation ---------------------
-SensorDevice device = SensorDevice();
+// States
+bool doConnect = false;
+bool isConnected = false;
+bool doScan = false;
+bool isNotifySet = false;
 
-// --------------------- Function declaration ---------------------
+// Notification constant
+const uint8_t notificationOn[] = {0x1, 0x0};
+
+void CalculationModeNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify);
+void MeasurementPerMinuteNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify);
 void SetCalculationMode(const char *new_calc_mode);
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute);
 
-// --------------------- BLE characteristics' callback declaration ---------------------
-class BLEMeasurementsPerMinuteCallback : public BLECharacteristicCallbacks
+BLERemoteCharacteristic *pTemperatureRemoteCharacteristic;
+BLERemoteCharacteristic *pMeasurmentsPerMinuteRemoteCharacteristic;
+BLERemoteCharacteristic *pCalculationModeRemoteCharacteristic;
+
+BLEAdvertisedDevice *myDevice;
+
+SensorDevice device = SensorDevice();
+
+class MyClientCallback : public BLEClientCallbacks
 {
-  void onWrite(BLECharacteristic *characteristic)
+  void onConnect(BLEClient *pclient)
   {
-    int value = atoi(characteristic->getValue().c_str());
-    SetDeviceMeasurementPerMinute(value);
   }
-  void onRead(BLECharacteristic *characteristic)
+  void onDisconnect(BLEClient *pclient)
   {
-    int measaurements_per_minute = device.GetMeasurementsPerMinute();
-    characteristic->setValue(measaurements_per_minute);
+    isConnected = false;
+    Serial.println("Disconnected from the server!");
   }
 };
 
-class BLECalculationModeCallback : public BLECharacteristicCallbacks
+bool connectToServer()
 {
-  void onWrite(BLECharacteristic *characteristic)
-  {
-    const char *value = characteristic->getValue().c_str();
-    SetCalculationMode(value);
-  }
-  void onRead(BLECharacteristic *characteristic)
-  {
-    char *calculation_mode = device.GetCalculationMode();
-    characteristic->setValue(calculation_mode);
-  }
-};
+  Serial.print("Forming a connection to ");
+  Serial.println(myDevice->getAddress().toString().c_str());
 
-class BLETemperatureCallback : public BLECharacteristicCallbacks
+  BLEClient *pClient = BLEDevice::createClient();
+  Serial.println("Created client!");
+  pClient->setClientCallbacks(new MyClientCallback());
+
+  // Connect to the remote BLE Server.
+  pClient->connect(myDevice);
+  Serial.println("Connected to server!");
+
+  // ----------------------- Temperature -----------------------
+  BLERemoteService *RemoteService = pClient->getService(REMOTE_SERVICE_UUID);
+
+  if (RemoteService == nullptr)
+  {
+    Serial.print("Failed to find our service UUID: ");
+    Serial.println(REMOTE_SERVICE_UUID);
+    pClient->disconnect();
+    return false;
+  }
+  Serial.println("Found remote service!");
+
+  pTemperatureRemoteCharacteristic = RemoteService->getCharacteristic(TEMPERATURE_REMOTE_CHARACTERISTIC_UUID);
+  if (pTemperatureRemoteCharacteristic == nullptr)
+  {
+    Serial.print("Failed to find our characteristic UUID: ");
+    Serial.println(TEMPERATURE_REMOTE_CHARACTERISTIC_UUID);
+    pClient->disconnect();
+    return false;
+  }
+  Serial.println("Found temperature characteristic!");
+
+  // ----------------------- Measurement per minute -----------------------
+
+  pMeasurmentsPerMinuteRemoteCharacteristic = RemoteService->getCharacteristic(MEASUREMENTS_PER_MINUTE_REMOTE_CHARACTERISTIC_UUID);
+  if (pMeasurmentsPerMinuteRemoteCharacteristic == nullptr)
+  {
+    Serial.print("Failed to find our characteristic UUID: ");
+    Serial.println(MEASUREMENTS_PER_MINUTE_REMOTE_CHARACTERISTIC_UUID);
+    pClient->disconnect();
+    return false;
+  }
+  Serial.println("Found measurement per minute characteristic!");
+
+  // ----------------------- Calculation mode -----------------------
+  pCalculationModeRemoteCharacteristic = RemoteService->getCharacteristic(CALCULATION_MODE_REMOTE_CHARACTERISTIC_UUID);
+  if (pCalculationModeRemoteCharacteristic == nullptr)
+  {
+    Serial.print("Failed to find our characteristic UUID: ");
+    Serial.println(CALCULATION_MODE_REMOTE_CHARACTERISTIC_UUID);
+    pClient->disconnect();
+    return false;
+  }
+  Serial.println("Found calculation mode characteristic!");
+  // ----------------------- Reading and writing characteristics -----------------------
+
+  if (pMeasurmentsPerMinuteRemoteCharacteristic->canRead())
+  {
+    SetDeviceMeasurementPerMinute(atoi(pMeasurmentsPerMinuteRemoteCharacteristic->readValue().c_str()));
+  }
+
+  if (pCalculationModeRemoteCharacteristic->canRead())
+  {
+    SetCalculationMode(pCalculationModeRemoteCharacteristic->readValue().c_str());
+  }
+
+  if (pTemperatureRemoteCharacteristic->canWrite())
+  {
+    pTemperatureRemoteCharacteristic->writeValue(device.GetData());
+  }
+
+  if (!isNotifySet)
+  {
+    pCalculationModeRemoteCharacteristic->registerForNotify(CalculationModeNotifyCallback);
+    pMeasurmentsPerMinuteRemoteCharacteristic->registerForNotify(MeasurementPerMinuteNotifyCallback);
+    isNotifySet = true;
+  }
+  isConnected = true;
+  return true;
+}
+
+void CalculationModeNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify)
 {
+  SetCalculationMode((char *)pData);
+}
 
-  void onRead(BLECharacteristic *characteristic)
+void MeasurementPerMinuteNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify)
+{
+  SetDeviceMeasurementPerMinute(atoi((char *)pData));
+}
+
+class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
+{
+  void onResult(BLEAdvertisedDevice advertisedDevice)
   {
-    char buffer[10];
-    if (device.canSendData())
+
+    Serial.print("BLE Advertised Device found: ");
+    Serial.println(advertisedDevice.isAdvertisingService(BLEUUID(REMOTE_SERVICE_UUID)));
+    // Found a device
+    if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(REMOTE_SERVICE_UUID)))
     {
-      device.ProcessData();
-      dtostrf(device.GetData(), 4, 2, buffer);
-      characteristic->setValue(buffer);
-    }
-  }
+      BLEDevice::getScan()->stop();
+      myDevice = new BLEAdvertisedDevice(advertisedDevice);
+      doConnect = true;
+      doScan = true;
+    } // Found our server
+
+  } // onResult
 };
 
 void setup()
 {
-  // Ble initialization.
-  BLEDevice::init(device.GetID());
-  BLEServer *pServer = BLEDevice::createServer();
+  Serial.println("Starting Arduino BLE Client application...");
+  BLEDevice::init("");
+  BLEScan *pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setInterval(1349);
 
-  // Ble services' creation.
-  BLEService *pTemperatureService = pServer->createService(TEMPERATURE_SERVICE_UUID);
-  BLEService *pCalculationModeService = pServer->createService(GATEWAY_COMMUNICATAION_CALCULATION_MODE_SERVICE);
-  BLEService *pMeasurementsPerMinuteService = pServer->createService(GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE);
+  pBLEScan->setWindow(449);
 
-  // Ble characteristics' creation.
-  BLECharacteristic *pCalculationModeCharacteristic = pCalculationModeService->createCharacteristic(
-      CALC_MODE_CHARACTERISTIC_UUID,
-      BLECharacteristic::PROPERTY_READ |
-          BLECharacteristic::PROPERTY_WRITE);
+  pBLEScan->setActiveScan(true);
 
-  BLECharacteristic *pMeasurementPerMinuteCharacteristic = pMeasurementsPerMinuteService->createCharacteristic(
-      MEASUREMENTS_PER_MINUTE_CHARACTERISTIC_UUID,
-      BLECharacteristic::PROPERTY_READ |
-          BLECharacteristic::PROPERTY_WRITE);
-
-  BLECharacteristic *pTempCharacteristic = pTemperatureService->createCharacteristic(
-      TEMP_CHARACTERISTIC_UUID,
-      BLECharacteristic::PROPERTY_READ);
-
-  // Setting callbacks and initial values.
-  pCalculationModeCharacteristic->setCallbacks(new BLECalculationModeCallback());
-  pCalculationModeCharacteristic->setValue(CALCULATION_MODE_AVERAGE_TYPE_TEXT);
-
-  pMeasurementPerMinuteCharacteristic->setCallbacks(new BLEMeasurementsPerMinuteCallback());
-  char value[5];
-  itoa(DEFAULT_MEASUREMENT_PER_MINUTE_VALUE, value, 10);
-  pMeasurementPerMinuteCharacteristic->setValue(value);
-
-  pTempCharacteristic->setCallbacks(new BLETemperatureCallback());
-  pTempCharacteristic->setValue("-1");
-
-  // Starting BLE services.
-  pTemperatureService->start();
-  pCalculationModeService->start();
-  pMeasurementsPerMinuteService->start();
-
-  // Creating, configuring, and starting BLE advertising.
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(TEMPERATURE_SERVICE_UUID);
-  pAdvertising->addServiceUUID(GATEWAY_COMMUNICATAION_CALCULATION_MODE_SERVICE);
-  pAdvertising->addServiceUUID(GATEWAY_COMMUNICATAION_MEASURMENTS_PER_MINUTE_SERVICE);
-  pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06);
-  pAdvertising->setMinPreferred(0x12);
-  BLEDevice::startAdvertising();
+  pBLEScan->start(5, false);
 }
 
 // Loop holds the main logic of the sensor management.
 void loop()
 {
-  if (device.canCollectData())
+  if (doConnect)
   {
-    device.CollecData();
+    if (connectToServer())
+    {
+      Serial.println("Connected to the BLE Server.");
+      pMeasurmentsPerMinuteRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
+      pCalculationModeRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
+      pTemperatureRemoteCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
+      doConnect = false;
+    }
+    else
+    {
+      Serial.println("Failed to connect to the server! Retrying!");
+      delay(1000);
+    }
   }
-  device.Sleep();
+  if (isConnected)
+  {
+    if (device.canCollectData())
+    {
+      device.CollecData();
+    }
+    if (device.canSendData())
+    {
+      device.ProcessData();
+      char tempDataBuffer[64];
+      snprintf(tempDataBuffer, sizeof tempDataBuffer, "%0.2f", device.GetData());
+      pTemperatureRemoteCharacteristic->writeValue(tempDataBuffer);
+    }
+    device.Sleep();
+  }
+  else if (doScan)
+  {
+    BLEDevice::getScan()->start(0);
+  }
 }
 
 // Used by callbacks, sets the sensor device's measurement per minute value
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute)
 {
-  device.SetMeasurementPerMinute(new_measurement_per_minute);
+  if (new_measurement_per_minute > 0 && new_measurement_per_minute < 120000)
+  {
+    device.SetMeasurementPerMinute(new_measurement_per_minute);
+  }
 }
 
 // Used by callbacks, sets the sensor device's callculation mode value

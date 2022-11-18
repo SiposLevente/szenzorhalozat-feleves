@@ -83,6 +83,6 @@ public:
     char *GetCalculationMode();
     /// Gets the id of the device.
     char *GetID();
-    /// Returns the processed data. Resets the buffer!
+    /// Returns the temperature data. Resets the buffer!
     float GetData();
 };

@@ -149,6 +149,8 @@ float SensorDevice::ConvertValueToDataEntry(int value)
 void SensorDevice::SetMeasurementPerMinute(int new_measurement_per_minute)
 {
     this->m_measurements_per_min = new_measurement_per_minute;
+    this->ResetBuffer();
+    this->m_last_data_time = millis();
 }
 
 void SensorDevice::SetCalculationMode(CalculationMode calc_mode)
