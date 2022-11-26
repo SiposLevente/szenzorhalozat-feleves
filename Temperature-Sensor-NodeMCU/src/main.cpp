@@ -221,7 +221,7 @@ void loop()
 // Used by callbacks, sets the sensor device's measurement per minute value
 void SetDeviceMeasurementPerMinute(int new_measurement_per_minute)
 {
-  if (new_measurement_per_minute > 0 && new_measurement_per_minute < 120000)
+  if (new_measurement_per_minute > 0 && new_measurement_per_minute <= 120000)
   {
     device.SetMeasurementPerMinute(new_measurement_per_minute);
   }
