@@ -20,7 +20,7 @@ The device publishes the temperature data with the following structure:
 
 `{id};data`
 
-e.g.: `df694488;21.32` meaning the device with the if of `df694488` sent a temperature data of `21.32` degrees.
+e.g.: `df694488;21.32` meaning the device with the if of `df694488` sent a temperature data of `21.32` degrees Celcius.
 
 ### Calculation mode
 For setting calculation mode, the device uses the UUID of:
