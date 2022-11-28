@@ -9,6 +9,9 @@
 #define TEMPERATURE_REMOTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593b"
 #define CALCULATION_MODE_REMOTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593c"
 #define MEASUREMENTS_PER_MINUTE_REMOTE_CHARACTERISTIC_UUID "b17516f7-0b89-4ade-9a84-0b849b3b593d"
+#define ID_LENGTH 8
+#define FLOAT_CONVERSION_ARRAY_LENGTH 8
+#define SEPARATOR_CHAR_LENGTH 1
 
 // States
 bool doConnect = false;
@@ -23,7 +26,11 @@ const uint8_t notificationOn[] = {0x1, 0x0};
 void CalculationModeNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify);
 void MeasurementPerMinuteNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify);
 void SetCalculationMode(const char *new_calc_mode);
-void SetDeviceMeasurementPerMinute(int new_measurement_per_minute);
+void SetDeviceMeasurementPerMinute(const char *new_measurement_per_minute);
+
+bool ContainsDeviceId(const char *data);
+char *RemoveDeviceIdFromData(const char *data);
+char *AddDeviceId(float value);
 
 // Characteristics' declaration
 BLERemoteCharacteristic *pTemperatureRemoteCharacteristic;
@@ -109,7 +116,7 @@ bool connectToServer()
 
   if (pMeasurmentsPerMinuteRemoteCharacteristic->canRead())
   {
-    SetDeviceMeasurementPerMinute(atoi(pMeasurmentsPerMinuteRemoteCharacteristic->readValue().c_str()));
+    SetDeviceMeasurementPerMinute(pMeasurmentsPerMinuteRemoteCharacteristic->readValue().c_str());
   }
 
   if (pCalculationModeRemoteCharacteristic->canRead())
@@ -141,7 +148,7 @@ void CalculationModeNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteri
 
 void MeasurementPerMinuteNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic, uint8_t *pData, size_t length, bool isNotify)
 {
-  SetDeviceMeasurementPerMinute(atoi((char *)pData));
+  SetDeviceMeasurementPerMinute((char *)pData);
 }
 
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
@@ -206,9 +213,9 @@ void loop()
     if (device.canSendData())
     {
       device.ProcessData();
-      char tempDataBuffer[64];
-      snprintf(tempDataBuffer, sizeof tempDataBuffer, "%0.2f", device.GetData());
-      pTemperatureRemoteCharacteristic->writeValue(tempDataBuffer);
+      char *data = AddDeviceId(device.GetData());
+      Serial.printf("\nData sent: %s\n\n", data);
+      pTemperatureRemoteCharacteristic->writeValue(data);
     }
     device.Sleep();
   }
@@ -219,30 +226,109 @@ void loop()
 }
 
 // Used by callbacks, sets the sensor device's measurement per minute value
-void SetDeviceMeasurementPerMinute(int new_measurement_per_minute)
+void SetDeviceMeasurementPerMinute(const char *new_measurement_per_minute)
 {
-  if (new_measurement_per_minute > 0 && new_measurement_per_minute <= 120000)
+  if (ContainsDeviceId(new_measurement_per_minute))
   {
-    device.SetMeasurementPerMinute(new_measurement_per_minute);
+    char *new_mpm = RemoveDeviceIdFromData(new_measurement_per_minute);
+    int new_value = atoi(new_mpm);
+    Serial.printf("New mpm value: %d\n", new_value);
+    if (new_value > 0 && new_value <= 120000)
+    {
+      device.SetMeasurementPerMinute(new_value);
+    }
   }
 }
 
 // Used by callbacks, sets the sensor device's callculation mode value
 void SetCalculationMode(const char *new_calc_mode)
 {
-  CalculationMode calc_mode;
-  if (new_calc_mode == CALCULATION_MODE_AVERAGE_TYPE_TEXT)
+  if (ContainsDeviceId(new_calc_mode))
   {
-    calc_mode = CalculationMode::Average;
+    char *new_mode = RemoveDeviceIdFromData(new_calc_mode);
+    CalculationMode calc_mode;
+    if (new_mode == CALCULATION_MODE_AVERAGE_TYPE_TEXT)
+    {
+      calc_mode = CalculationMode::Average;
+    }
+    else if (new_mode == CALCULATION_MODE_MEDIAN_TYPE_TEXT)
+    {
+      calc_mode = CalculationMode::Median;
+    }
+    else
+    {
+      calc_mode = CalculationMode::Mode;
+    }
+
+    device.SetCalculationMode(calc_mode);
   }
-  else if (new_calc_mode == CALCULATION_MODE_MEDIAN_TYPE_TEXT)
+}
+
+char *RemoveDeviceIdFromData(const char *data)
+{
+  char *tempDataBuffer = new char(FLOAT_CONVERSION_ARRAY_LENGTH);
+  for (int iterator = 0; iterator < FLOAT_CONVERSION_ARRAY_LENGTH; iterator++)
   {
-    calc_mode = CalculationMode::Median;
-  }
-  else
-  {
-    calc_mode = CalculationMode::Mode;
+    tempDataBuffer[iterator] = '\0';
   }
 
-  device.SetCalculationMode(calc_mode);
+  int tempDataIterator = ID_LENGTH + SEPARATOR_CHAR_LENGTH;
+
+  while (tempDataIterator < ID_LENGTH + SEPARATOR_CHAR_LENGTH + FLOAT_CONVERSION_ARRAY_LENGTH && data[tempDataIterator] != '\0')
+  {
+    tempDataBuffer[tempDataIterator - (ID_LENGTH + SEPARATOR_CHAR_LENGTH)] = data[tempDataIterator];
+    tempDataIterator++;
+  }
+  Serial.printf("Temp data buffer: %s\n", tempDataBuffer);
+  return tempDataBuffer;
+}
+
+bool ContainsDeviceId(const char *data)
+{
+  char *device_id = device.GetID();
+  int iterator = 0;
+  Serial.printf("\nData: %s --- Device id: %s\n", data, device_id);
+
+  while (iterator < ID_LENGTH && device_id[iterator] == data[iterator])
+  {
+    iterator++;
+  }
+  bool contains = false;
+  if (iterator == ID_LENGTH)
+  {
+    contains = true;
+  }
+  Serial.printf("Contains %d\n", contains);
+  return contains;
+}
+
+char *AddDeviceId(float value)
+{
+  char tempDataBuffer[FLOAT_CONVERSION_ARRAY_LENGTH];
+  char *return_str = new char[ID_LENGTH + FLOAT_CONVERSION_ARRAY_LENGTH + SEPARATOR_CHAR_LENGTH]; // UUID length, converted temperature length, separator character ';'
+  for (int i = 0; i < ID_LENGTH + FLOAT_CONVERSION_ARRAY_LENGTH + SEPARATOR_CHAR_LENGTH; i++)
+  {
+    return_str[i] = '\0';
+  }
+
+  char *device_id = device.GetID();
+
+  snprintf(tempDataBuffer, sizeof tempDataBuffer, "%0.2f", value);
+  int iterator = 0;
+  for (iterator = 0; iterator < ID_LENGTH; iterator++)
+  {
+    return_str[iterator] = device_id[iterator];
+  }
+  return_str[iterator++] = ';';
+  int tempDataIterator = 0;
+  while (tempDataIterator < FLOAT_CONVERSION_ARRAY_LENGTH && tempDataBuffer[tempDataIterator] != '\0')
+  {
+    if (tempDataBuffer[tempDataIterator] != '\0')
+    {
+      return_str[iterator++] = tempDataBuffer[tempDataIterator];
+    }
+    tempDataIterator++;
+  }
+
+  return return_str;
 }
