@@ -24,7 +24,7 @@ SensorDevice::SensorDevice()
 {
     Serial.begin(115200);
     Serial.println("Starting setup!");
-    this->m_id = UUIDGenerator::GenerateUUID();
+    this->m_id = IDGenerator::GenerateID();
     Serial.print("Generated UUID: ");
     Serial.println(this->m_id);
     this->m_temp_buffer = nullptr;
