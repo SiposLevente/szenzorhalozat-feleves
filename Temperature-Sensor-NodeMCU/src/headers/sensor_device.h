@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "headers/uuid_generator.h"
+#include "headers/id_generator.h"
 #include "headers/calulation_modes.h"
 
 /// A minute in miliseconds.
